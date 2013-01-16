@@ -1,0 +1,3 @@
+[submodule "fuel/packages/cmf"]
+	path = fuel/packages/cmf
+	url = git@github.com:soundintheory/fuel-cmf.git
