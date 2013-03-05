@@ -19,16 +19,16 @@
 
 namespace Doctrine\ORM\Mapping;
 
-use ReflectionException,
-    Doctrine\ORM\ORMException,
-    Doctrine\ORM\EntityManager,
-    Doctrine\DBAL\Platforms,
-    Doctrine\ORM\Events,
-    Doctrine\Common\Persistence\Mapping\ReflectionService,
-    Doctrine\Common\Persistence\Mapping\ClassMetadata as ClassMetadataInterface,
-    Doctrine\Common\Persistence\Mapping\AbstractClassMetadataFactory,
-    Doctrine\ORM\Id\IdentityGenerator,
-    Doctrine\ORM\Event\LoadClassMetadataEventArgs;
+use ReflectionException;
+use Doctrine\ORM\ORMException;
+use Doctrine\ORM\EntityManager;
+use Doctrine\DBAL\Platforms;
+use Doctrine\ORM\Events;
+use Doctrine\Common\Persistence\Mapping\ReflectionService;
+use Doctrine\Common\Persistence\Mapping\ClassMetadata as ClassMetadataInterface;
+use Doctrine\Common\Persistence\Mapping\AbstractClassMetadataFactory;
+use Doctrine\ORM\Id\IdentityGenerator;
+use Doctrine\ORM\Event\LoadClassMetadataEventArgs;
 
 /**
  * The ClassMetadataFactory is used to create ClassMetadata objects that contain all the
@@ -173,8 +173,11 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
     /**
      * Validate runtime metadata is correctly defined.
      *
-     * @param ClassMetadata $class
-     * @param $parent
+     * @param ClassMetadata               $class
+     * @param ClassMetadataInterface|null $parent
+     *
+     * @return void
+     *
      * @throws MappingException
      */
     protected function validateRuntimeMetadata($class, $parent)
@@ -226,6 +229,7 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      * each class as key.
      *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $class
+     *
      * @throws MappingException
      */
     private function addDefaultDiscriminatorMap(ClassMetadata $class)
@@ -255,9 +259,10 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
     }
 
     /**
-     * Get the lower-case short name of a class.
+     * Gets the lower-case short name of a class.
      *
      * @param string $className
+     *
      * @return string
      */
     private function getShortName($className)
@@ -275,6 +280,8 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $subClass
      * @param \Doctrine\ORM\Mapping\ClassMetadata $parentClass
+     *
+     * @return void
      */
     private function addInheritedFields(ClassMetadata $subClass, ClassMetadata $parentClass)
     {
@@ -297,6 +304,9 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $subClass
      * @param \Doctrine\ORM\Mapping\ClassMetadata $parentClass
+     *
+     * @return void
+     *
      * @throws MappingException
      */
     private function addInheritedRelations(ClassMetadata $subClass, ClassMetadata $parentClass)
@@ -324,8 +334,11 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      * Adds inherited named queries to the subclass mapping.
      *
      * @since 2.2
+     *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $subClass
      * @param \Doctrine\ORM\Mapping\ClassMetadata $parentClass
+     *
+     * @return void
      */
     private function addInheritedNamedQueries(ClassMetadata $subClass, ClassMetadata $parentClass)
     {
@@ -343,8 +356,11 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      * Adds inherited named native queries to the subclass mapping.
      *
      * @since 2.3
+     *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $subClass
      * @param \Doctrine\ORM\Mapping\ClassMetadata $parentClass
+     *
+     * @return void
      */
     private function addInheritedNamedNativeQueries(ClassMetadata $subClass, ClassMetadata $parentClass)
     {
@@ -365,8 +381,11 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      * Adds inherited sql result set mappings to the subclass mapping.
      *
      * @since 2.3
+     *
      * @param \Doctrine\ORM\Mapping\ClassMetadata $subClass
      * @param \Doctrine\ORM\Mapping\ClassMetadata $parentClass
+     *
+     * @return void
      */
     private function addInheritedSqlResultSetMappings(ClassMetadata $subClass, ClassMetadata $parentClass)
     {
@@ -396,6 +415,9 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
      * most appropriate for the targeted database platform.
      *
      * @param ClassMetadataInfo $class
+     *
+     * @return void
+     *
      * @throws ORMException
      */
     private function completeIdGeneratorMapping(ClassMetadataInfo $class)

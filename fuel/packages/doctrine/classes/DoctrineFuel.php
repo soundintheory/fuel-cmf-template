@@ -97,10 +97,9 @@ class DoctrineFuel
 	/**
 	 * Read configuration and add custom mapping types
 	 */
-	protected static function init()
+	public static function _init()
 	{
 		static::$settings = \Config::load('doctrine', true);
-		
 		static::$initialized = true;
 	}
 	
@@ -109,7 +108,7 @@ class DoctrineFuel
 	 */
 	public static function manager($connection = 'default')
 	{
-		if (!static::$initialized) static::init();
+		if (!static::$initialized) static::_init();
 		if (!isset(static::$managers[$connection])) static::initManager($connection); 
 		return static::$managers[$connection];
 	}
@@ -218,7 +217,7 @@ class DoctrineFuel
 	 */
 	public static function validator()
 	{
-		if (!static::$initialized) static::init();
+		if (!static::$initialized) static::_init();
 		if (static::$validator === null) static::initValidator();
 		
 		return static::$validator;
@@ -241,7 +240,7 @@ class DoctrineFuel
 	/**
 	 * @return \Doctrine\Common\Cache\CacheProvider
 	 */
-	protected static function cache()
+	public static function cache()
 	{
 		if (static::$cache_driver !== null) return static::$cache_driver;
 		

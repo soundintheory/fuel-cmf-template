@@ -120,7 +120,7 @@ abstract class Model
      * 
      * @return array Array of results as instances of the model
      */
-    public static function findBy(array $filters, array $orderBy = array(), $limit = null, $offset = null)
+    public static function findBy(array $filters, array $orderBy = array(), $limit = null, $offset = null, $params = null)
     {
         $called_class = get_called_class();
         $qb = $called_class::select('item');
@@ -146,6 +146,12 @@ abstract class Model
                 }
                 
                 $o++;
+            }
+        }
+        
+        if (is_array($params)) {
+            foreach ($params as $num => $param) {
+                $qb->setParameter($num+1, $param);
             }
         }
         
@@ -232,12 +238,12 @@ abstract class Model
      * @param array $data The data to populate
      * @return void
      */
-    public function populate($data)
+    public function populate($data, $overwrite=true)
     {
         foreach ($data as $field_name => $field_value) {
             
             if (property_exists($this, $field_name)) {
-                $this->set($field_name, $field_value);
+                $this->set($field_name, $field_value, $overwrite);
             }
             
         }
@@ -296,9 +302,10 @@ abstract class Model
      * @throws BadMethodCallException - When no property exists by that name.
      * @param string $field
      * @param mixed $value
+     * @param boolean $overwrite Whether to overwrite collections or not
      * @return void
      */
-    public function set($field, $value)
+    public function set($field, $value, $overwrite=true)
     {
         $metadata = $this->_metadata();
         
@@ -333,13 +340,16 @@ abstract class Model
             } else if ($metadata->isCollectionValuedAssociation($field)) {
                 
                 if (is_null($value) || empty($value)) {
-                    $value = new ArrayCollection();
+                    $value = array();
                 } else if (is_numeric($value) || $value instanceof \Doctrine\Fuel\Model) {
                     $value = array($value);
+                } else if ($value instanceof Collection) {
+                    $value = $value->toArray();
                 } else if (!is_array($value) && !($value instanceof Collection))  {
                     throw new \InvalidArgumentException("The value '$value' passed to '$field' of '".get_class($this)."' is not a collection or an array");
                 }
                 
+                $value = array_values($value);
                 $ids = array();
                 $collection = (!isset($this->$field)) ? new ArrayCollection() : $this->$field;
                 
@@ -371,14 +381,18 @@ abstract class Model
                     
                 }
                 
-                foreach ($collection as $collection_item)
-                {
-                    $cid = $collection_item->get('id');
-                    if (!in_array($cid, $ids)) {
-                        $collection->removeElement($collection_item);
-                        $this->completeOwningSide($field, $target_class, $collection_item, true);
-                        $this->changed = true;
+                // If overwrite is true, remove collection items that aren't present in the given array
+                if ($overwrite === true) {
+                    
+                    foreach ($collection as $collection_item) {
+                        $cid = $collection_item->get('id');
+                        if (!is_null($cid) && !in_array($cid, $ids)) {
+                            $collection->removeElement($collection_item);
+                            $this->completeOwningSide($field, $target_class, $collection_item, true);
+                            $this->changed = true;
+                        }
                     }
+                    
                 }
                 
                 $this->$field = $collection;
@@ -389,10 +403,10 @@ abstract class Model
             
         }
         
-        // Otherwise, this is a normal property. Try and set it...
         if (property_exists($this, $field)) {
             
-            //print("setting ".$field." to ".$value."\n");
+            // Otherwise, this is a normal property. Try and set it...
+            
             if ($this->$field !== $value) {
                 $this->$field = $value;
                 $this->changed = true;
@@ -402,10 +416,19 @@ abstract class Model
             
         } else if (($pos = strpos($field, '[')) !== false || ($pos = strpos($field, '.')) !== false) {
             
+            // The property may be written in array syntax or dot notation. Try and decipher it...
+            
             $field_name = substr($field, 0, $pos);
             $field_prop = substr(str_replace(array('[', ']'), array('.', ''), $field), $pos+1);
             
             if (property_exists($this, $field_name)) {
+                
+                $field_val = $this->$field_name;
+                
+                if ($field_val instanceof Model) {
+                    $field_val->set($field_prop, $value);
+                    return;
+                }
                 
                 if (!isset($this->$field_name) || !is_array($this->$field_name)) $this->$field_name = array();
                 \Arr::set($this->$field_name, $field_prop, $value);
@@ -494,7 +517,12 @@ abstract class Model
                 }
             } else {
                 $setter = $target_metadata->isCollectionValuedAssociation($mapped_by) ? "add" : "set";
+                //print("using ".$setter." on ".$field."'s property ".$mapped_by."\n\n");
+                //print_r($target_object->toArray());
+                //print("\n\n");
                 $target_object->$setter($mapped_by, $this);
+                //print_r($target_object->$mapped_by);
+                
             }
         }
     }
@@ -610,6 +638,11 @@ abstract class Model
         } else {
             throw new \BadMethodCallException("No field with name '".$field."' exists on '".get_class($this)."'");
         }
+    }
+    
+    public function __isset($name)
+    {
+        return isset($this->$name);
     }
 	
 }

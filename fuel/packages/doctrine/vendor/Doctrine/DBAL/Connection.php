@@ -131,7 +131,7 @@ class Connection implements DriverConnection
     private $_transactionIsolationLevel;
 
     /**
-     * If nested transations should use savepoints
+     * If nested transactions should use savepoints
      *
      * @var integer
      */
@@ -489,7 +489,7 @@ class Connection implements DriverConnection
      * Executes an SQL UPDATE statement on a table.
      *
      * @param string $tableName The name of the table to update.
-     * @param array $data
+     * @param array $data An associative array containing column-value pairs.
      * @param array $identifier The update criteria. An associative array containing column-value pairs.
      * @param array $types Types of the merged $data and $identifier arrays in that order.
      * @return integer The number of affected rows.
@@ -577,11 +577,12 @@ class Connection implements DriverConnection
      *
      * @param string $sql The SQL query.
      * @param array $params The query parameters.
+     * @param array $types Query parameter types.
      * @return array
      */
-    public function fetchAll($sql, array $params = array())
+    public function fetchAll($sql, array $params = array(), $types = array())
     {
-        return $this->executeQuery($sql, $params)->fetchAll();
+        return $this->executeQuery($sql, $params, $types)->fetchAll();
     }
 
     /**
@@ -606,9 +607,9 @@ class Connection implements DriverConnection
     }
 
     /**
-     * Executes an, optionally parameterized, SQL query.
+     * Executes an, optionally parametrized, SQL query.
      *
-     * If the query is parameterized, a prepared statement is used.
+     * If the query is parametrized, a prepared statement is used.
      * If an SQLLogger is configured, the execution is logged.
      *
      * @param string $query The SQL query to execute.
@@ -696,13 +697,13 @@ class Connection implements DriverConnection
     }
 
     /**
-     * Executes an, optionally parameterized, SQL query and returns the result,
+     * Executes an, optionally parametrized, SQL query and returns the result,
      * applying a given projection/transformation function on each row of the result.
      *
      * @param string $query The SQL query to execute.
      * @param array $params The parameters, if any.
      * @param Closure $mapper The transformation function that is applied on each row.
-     *                        The function receives a single paramater, an array, that
+     *                        The function receives a single parameter, an array, that
      *                        represents a row of the result set.
      * @return mixed The projected result of the query.
      */

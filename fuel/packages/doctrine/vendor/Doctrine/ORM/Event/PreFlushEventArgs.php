@@ -31,17 +31,22 @@ namespace Doctrine\ORM\Event;
 class PreFlushEventArgs extends \Doctrine\Common\EventArgs
 {
     /**
-     * @var EntityManager
+     * @var \Doctrine\ORM\EntityManager
      */
     private $_em;
 
+    /**
+     * Constructor.
+     *
+     * @param \Doctrine\ORM\EntityManager $em
+     */
     public function __construct($em)
     {
         $this->_em = $em;
     }
 
     /**
-     * @return EntityManager
+     * @return \Doctrine\ORM\EntityManager
      */
     public function getEntityManager()
     {

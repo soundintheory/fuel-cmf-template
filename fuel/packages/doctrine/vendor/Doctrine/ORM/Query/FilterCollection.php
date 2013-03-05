@@ -19,8 +19,8 @@
 
 namespace Doctrine\ORM\Query;
 
-use Doctrine\ORM\Configuration,
-    Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManager;
 
 /**
  * Collection class for all the query filters.
@@ -30,6 +30,7 @@ use Doctrine\ORM\Configuration,
 class FilterCollection
 {
     /* Filter STATES */
+
     /**
      * A filter object is in CLEAN state when it has no changed parameters.
      */
@@ -43,14 +44,14 @@ class FilterCollection
     /**
      * The used Configuration.
      *
-     * @var Doctrine\ORM\Configuration
+     * @var \Doctrine\ORM\Configuration
      */
     private $config;
 
     /**
      * The EntityManager that "owns" this FilterCollection instance.
      *
-     * @var Doctrine\ORM\EntityManager
+     * @var \Doctrine\ORM\EntityManager
      */
     private $em;
 
@@ -67,7 +68,7 @@ class FilterCollection
     private $filterHash;
 
     /**
-     * @var integer $state The current state of this filter
+     * @var integer The current state of this filter.
      */
     private $filtersState = self::FILTERS_STATE_CLEAN;
 
@@ -83,7 +84,7 @@ class FilterCollection
     }
 
     /**
-     * Get all the enabled filters.
+     * Gets all the enabled filters.
      *
      * @return array The enabled filters.
      */
@@ -97,18 +98,20 @@ class FilterCollection
      *
      * @param string $name Name of the filter.
      *
-     * @throws \InvalidArgumentException If the filter does not exist.
+     * @return \Doctrine\ORM\Query\Filter\SQLFilter The enabled filter.
      *
-     * @return SQLFilter The enabled filter.
+     * @throws \InvalidArgumentException If the filter does not exist.
      */
     public function enable($name)
     {
-        if (null === $filterClass = $this->config->getFilterClassName($name)) {
+        if (null === $filter = $this->config->getFilter($name)) {
             throw new \InvalidArgumentException("Filter '" . $name . "' does not exist.");
         }
 
         if (!isset($this->enabledFilters[$name])) {
-            $this->enabledFilters[$name] = new $filterClass($this->em);
+            $this->enabledFilters[$name] = is_object($filter)
+                ? $filter
+                : new $filter($this->em);
 
             // Keep the enabled filters sorted for the hash
             ksort($this->enabledFilters);
@@ -125,7 +128,7 @@ class FilterCollection
      *
      * @param string $name Name of the filter.
      *
-     * @return SQLFilter The disabled filter.
+     * @return \Doctrine\ORM\Query\Filter\SQLFilter The disabled filter.
      *
      * @throws \InvalidArgumentException If the filter does not exist.
      */
@@ -143,11 +146,11 @@ class FilterCollection
     }
 
     /**
-     * Get an enabled filter from the collection.
+     * Gets an enabled filter from the collection.
      *
      * @param string $name Name of the filter.
      *
-     * @return SQLFilter The filter.
+     * @return \Doctrine\ORM\Query\Filter\SQLFilter The filter.
      *
      * @throws \InvalidArgumentException If the filter is not enabled.
      */
@@ -189,7 +192,7 @@ class FilterCollection
     }
 
     /**
-     * Set the filter state to dirty.
+     * Sets the filter state to dirty.
      */
     public function setFiltersStateDirty()
     {

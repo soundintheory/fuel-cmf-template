@@ -6,6 +6,7 @@ return array(
 	'proxy_dir' => APPPATH.'classes/proxy',
 	'proxy_namespace' => 'Proxy',
 	'metadata_path' => array(),
+	'cache_driver' => 'file',
 	
 	/**
 	 * These are used to filter entities for mapping. Doctrine will use 

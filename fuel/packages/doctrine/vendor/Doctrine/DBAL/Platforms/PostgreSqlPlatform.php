@@ -322,7 +322,9 @@ class PostgreSqlPlatform extends AbstractPlatform
             $query .= ' NOT DEFERRABLE';
         }
 
-        if ($foreignKey->hasOption('feferred') && $foreignKey->getOption('feferred') !== false) {
+        if (($foreignKey->hasOption('feferred') && $foreignKey->getOption('feferred') !== false)
+            || ($foreignKey->hasOption('deferred') && $foreignKey->getOption('deferred') !== false)
+        ) {
             $query .= ' INITIALLY DEFERRED';
         } else {
             $query .= ' INITIALLY IMMEDIATE';
@@ -406,6 +408,11 @@ class PostgreSqlPlatform extends AbstractPlatform
 
             if ($columnDiff->hasChanged('comment') && $comment = $this->getColumnComment($column)) {
                 $commentsSQL[] = $this->getCommentOnColumnSQL($diff->name, $column->getName(), $comment);
+            }
+
+            if ($columnDiff->hasChanged('length')) {
+                $query = 'ALTER ' . $column->getName() . ' TYPE ' . $column->getType()->getSqlDeclaration($column->toArray(), $this);
+                $sql[] = 'ALTER TABLE ' . $diff->name . ' ' . $query;
             }
         }
 

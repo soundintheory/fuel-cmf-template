@@ -21,19 +21,21 @@ namespace Doctrine\ORM\Tools\Console;
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Helper\HelperSet;
+use Doctrine\ORM\Version;
 
 class ConsoleRunner
 {
     /**
-     * Run console with the given helperset.
+     * Runs console with the given helperset.
      *
-     * @param \Symfony\Component\Console\Helper\HelperSet $helperSet
-     * @param \Symfony\Component\Console\Command\Command[] $commands 
+     * @param \Symfony\Component\Console\Helper\HelperSet  $helperSet
+     * @param \Symfony\Component\Console\Command\Command[] $commands
+     *
      * @return void
      */
     static public function run(HelperSet $helperSet, $commands = array())
     {
-        $cli = new Application('Doctrine Command Line Interface', \Doctrine\ORM\Version::VERSION);
+        $cli = new Application('Doctrine Command Line Interface', Version::VERSION);
         $cli->setCatchExceptions(true);
         $cli->setHelperSet($helperSet);
         self::addCommands($cli);
@@ -43,6 +45,8 @@ class ConsoleRunner
 
     /**
      * @param Application $cli
+     *
+     * @return void
      */
     static public function addCommands(Application $cli)
     {

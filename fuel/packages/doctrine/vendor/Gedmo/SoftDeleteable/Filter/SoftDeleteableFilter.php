@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping\ClassMetaData,
  *
  * @author Gustavo Falco <comfortablynumb84@gmail.com>
  * @author Gediminas Morkevicius <gediminas.morkevicius@gmail.com>
+ * @author Patrik Votoček <patrik@votocek.cz>
  * @package Gedmo.SoftDeleteable
  * @subpackage Filter
  * @link http://www.gediminasm.org
@@ -22,9 +23,19 @@ class SoftDeleteableFilter extends SQLFilter
 {
     protected $listener;
     protected $entityManager;
+    protected $disabled = array();
 
     public function addFilterConstraint(ClassMetadata $targetEntity, $targetTableAlias)
     {
+        $class = $targetEntity->getName();
+        if (array_key_exists($class, $this->disabled) && $this->disabled[$class] === true) {
+            return '';
+        } elseif (array_key_exists($targetEntity->rootEntityName, $this->disabled) && $this->disabled[$targetEntity->rootEntityName] === true) {
+            if (!array_key_exists($class, $this->disabled) || $this->disabled[$class] !== false) {
+                return '';
+            }
+        }
+
         $config = $this->getListener()->getConfiguration($this->getEntityManager(), $targetEntity->name);
 
         if (!isset($config['softDeleteable']) || !$config['softDeleteable']) {
@@ -34,6 +45,16 @@ class SoftDeleteableFilter extends SQLFilter
         $column = $targetEntity->columnNames[$config['fieldName']];
 
         return $targetTableAlias.'.'.$column.' IS NULL';
+    }
+
+    public function disableForEntity($class)
+    {
+        $this->disabled[$class] = true;
+    }
+
+    public function enableForEntity($class)
+    {
+        $this->disabled[$class] = false;
     }
 
     protected function getListener()

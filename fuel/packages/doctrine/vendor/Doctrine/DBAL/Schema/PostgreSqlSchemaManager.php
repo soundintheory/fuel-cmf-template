@@ -134,6 +134,8 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
 
         parent::dropDatabase($database);
 
+        $this->_conn->close();
+
         $this->_platform = $tmpPlatform;
         $this->_conn = $tmpConn;
     }
@@ -149,6 +151,8 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
         $this->_platform = $this->_conn->getDatabasePlatform();
 
         parent::createDatabase($database);
+
+        $this->_conn->close();
 
         $this->_platform = $tmpPlatform;
         $this->_conn = $tmpConn;
@@ -233,7 +237,7 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
             $sequenceName = $sequence['relname'];
         }
 
-        $data = $this->_conn->fetchAll('SELECT min_value, increment_by FROM ' . $sequenceName);
+        $data = $this->_conn->fetchAll('SELECT min_value, increment_by FROM ' . $this->_platform->quoteIdentifier($sequenceName));
         return new Sequence($sequenceName, $data[0]['increment_by'], $data[0]['min_value']);
     }
 

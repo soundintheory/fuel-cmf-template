@@ -24,11 +24,6 @@ use Doctrine\Common\Collections\Expr\Comparison;
 use Doctrine\Common\Collections\Expr\Value;
 use Doctrine\Common\Collections\Expr\CompositeExpression;
 
-use Doctrine\ORM\Mapping\ClassMetadata;
-
-use Doctrine\DBAL\Types\Type;
-use Doctrine\DBAL\Connection;
-
 /**
  * Extract the values from a criteria/expression
  *
@@ -47,7 +42,7 @@ class SqlValueVisitor extends ExpressionVisitor
     private $types  = array();
 
     /**
-     * Convert a comparison expression into the target query language output
+     * Converts a comparison expression into the target query language output.
      *
      * @param \Doctrine\Common\Collections\Expr\Comparison $comparison
      *
@@ -63,7 +58,7 @@ class SqlValueVisitor extends ExpressionVisitor
     }
 
     /**
-     * Convert a composite expression into the target query language output
+     * Converts a composite expression into the target query language output.
      *
      * @param \Doctrine\Common\Collections\Expr\CompositeExpression $expr
      *
@@ -77,7 +72,7 @@ class SqlValueVisitor extends ExpressionVisitor
     }
 
     /**
-     * Convert a value expression into the target query language part.
+     * Converts a value expression into the target query language part.
      *
      * @param \Doctrine\Common\Collections\Expr\Value $value
      *
@@ -89,7 +84,7 @@ class SqlValueVisitor extends ExpressionVisitor
     }
 
     /**
-     * Return the Parameters and Types necessary for matching the last visited expression.
+     * Returns the Parameters and Types necessary for matching the last visited expression.
      *
      * @return array
      */

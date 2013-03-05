@@ -103,7 +103,7 @@ abstract class AbstractPlatform
     protected $doctrineTypeComments = null;
 
     /**
-     * @var Doctrine\Common\EventManager
+     * @var \Doctrine\Common\EventManager
      */
     protected $_eventManager;
 
@@ -757,7 +757,7 @@ abstract class AbstractPlatform
     }
 
     /**
-     * Returns a series of strings concatinated
+     * Returns a series of strings concatenated
      *
      * concat() accepts an arbitrary number of parameters. Each parameter
      * must contain an expression
@@ -1165,7 +1165,10 @@ abstract class AbstractPlatform
             foreach ($table->getIndexes() as $index) {
                 /* @var $index Index */
                 if ($index->isPrimary()) {
-                    $options['primary'] = $index->getColumns();
+                    $platform = $this;
+                    $options['primary'] = array_map(function ($columnName) use ($table, $platform) {
+                        return $table->getColumn($columnName)->getQuotedName($platform);
+                    }, $index->getColumns());
                     $options['primary_index'] = $index;
                 } else {
                     $options['indexes'][$index->getName()] = $index;
@@ -1830,6 +1833,10 @@ abstract class AbstractPlatform
                     $default = " DEFAULT ".$field['default'];
                 } else if ((string)$field['type'] == 'DateTime' && $field['default'] == $this->getCurrentTimestampSQL()) {
                     $default = " DEFAULT ".$this->getCurrentTimestampSQL();
+                } else if ((string)$field['type'] == 'Time' && $field['default'] == $this->getCurrentTimeSQL()) {
+                    $default = " DEFAULT ".$this->getCurrentTimeSQL();
+                } else if ((string)$field['type'] == 'Date' && $field['default'] == $this->getCurrentDateSQL()) {
+                    $default = " DEFAULT ".$this->getCurrentDateSQL();
                 } else if ((string) $field['type'] == 'Boolean') {
                     $default = " DEFAULT '" . $this->convertBooleans($field['default']) . "'";
                 }
@@ -1915,7 +1922,7 @@ abstract class AbstractPlatform
 
     /**
      * getCustomTypeDeclarationSql
-     * Obtail SQL code portion needed to create a custom column,
+     * Obtain SQL code portion needed to create a custom column,
      * e.g. when a field has the "columnDefinition" keyword.
      * Only "AUTOINCREMENT" and "PRIMARY KEY" are added if appropriate.
      *
@@ -2429,7 +2436,7 @@ abstract class AbstractPlatform
 
     /**
      * Whether the platform supports identity columns.
-     * Identity columns are columns that recieve an auto-generated value from the
+     * Identity columns are columns that receive an auto-generated value from the
      * database on insert of a row.
      *
      * @return boolean
@@ -2565,7 +2572,7 @@ abstract class AbstractPlatform
     }
 
     /**
-     * Does this plaform support to add inline column comments as postfix.
+     * Does this platform support to add inline column comments as postfix.
      *
      * @return boolean
      */
@@ -2575,7 +2582,7 @@ abstract class AbstractPlatform
     }
 
     /**
-     * Does this platform support the propriortary synatx "COMMENT ON asset"
+     * Does this platform support the proprietary syntax "COMMENT ON asset"
      *
      * @return boolean
      */
@@ -2730,7 +2737,7 @@ abstract class AbstractPlatform
     }
 
     /**
-     * Maximum length of any given databse identifier, like tables or column names.
+     * Maximum length of any given database identifier, like tables or column names.
      *
      * @return integer
      */
