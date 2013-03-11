@@ -97,9 +97,10 @@ class DoctrineFuel
 	/**
 	 * Read configuration and add custom mapping types
 	 */
-	public static function _init()
+	protected static function init()
 	{
 		static::$settings = \Config::load('doctrine', true);
+		
 		static::$initialized = true;
 	}
 	
@@ -108,7 +109,7 @@ class DoctrineFuel
 	 */
 	public static function manager($connection = 'default')
 	{
-		if (!static::$initialized) static::_init();
+		if (!static::$initialized) static::init();
 		if (!isset(static::$managers[$connection])) static::initManager($connection); 
 		return static::$managers[$connection];
 	}
@@ -203,10 +204,6 @@ class DoctrineFuel
 		
 		static::initTypes($connection);
 		
-		// register custom types?
-		// $platform = static::$managers[$connection]->getConnection()->getDatabasePlatform();
-		// $platform->registerDoctrineTypeMapping('varbinary', 'binary');
-		
 		if (\Arr::get($db_settings, "$connection.profiling", false) === true) {
 		    static::$managers[$connection]->getConnection()->getConfiguration()->setSQLLogger(new Logger($connection));
 		}
@@ -217,7 +214,7 @@ class DoctrineFuel
 	 */
 	public static function validator()
 	{
-		if (!static::$initialized) static::_init();
+		if (!static::$initialized) static::init();
 		if (static::$validator === null) static::initValidator();
 		
 		return static::$validator;

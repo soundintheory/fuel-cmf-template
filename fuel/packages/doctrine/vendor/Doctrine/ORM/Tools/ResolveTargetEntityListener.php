@@ -39,12 +39,11 @@ class ResolveTargetEntityListener
     private $resolveTargetEntities = array();
 
     /**
-     * Adds a target-entity class name to resolve to a new class name.
+     * Add a target-entity class name to resolve to a new class name.
      *
      * @param string $originalEntity
      * @param string $newEntity
-     * @param array  $mapping
-     *
+     * @param array $mapping
      * @return void
      */
     public function addResolveTargetEntity($originalEntity, $newEntity, array $mapping)
@@ -54,16 +53,14 @@ class ResolveTargetEntityListener
     }
 
     /**
-     * Processes event and resolves new target entity names.
+     * Process event and resolve new target entity names.
      *
      * @param LoadClassMetadataEventArgs $args
-     *
      * @return void
      */
     public function loadClassMetadata(LoadClassMetadataEventArgs $args)
     {
         $cm = $args->getClassMetadata();
-
         foreach ($cm->associationMappings as $mapping) {
             if (isset($this->resolveTargetEntities[$mapping['targetEntity']])) {
                 $this->remapAssociation($cm, $mapping);
@@ -71,18 +68,11 @@ class ResolveTargetEntityListener
         }
     }
 
-    /**
-     * @param \Doctrine\ORM\Mapping\ClassMetadataInfo $classMetadata
-     * @param array                                   $mapping
-     *
-     * @return void
-     */
     private function remapAssociation($classMetadata, $mapping)
     {
         $newMapping = $this->resolveTargetEntities[$mapping['targetEntity']];
         $newMapping = array_replace_recursive($mapping, $newMapping);
         $newMapping['fieldName'] = $mapping['fieldName'];
-
         unset($classMetadata->associationMappings[$mapping['fieldName']]);
 
         switch ($mapping['type']) {
@@ -101,3 +91,4 @@ class ResolveTargetEntityListener
         }
     }
 }
+

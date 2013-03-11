@@ -34,10 +34,6 @@ class Validator
 
     public static function validateField(ClassMetadataInfo $meta, $field)
     {
-        if ($meta->isMappedSuperclass) {
-            return;
-        }
-
         $fieldMapping = $meta->getFieldMapping($field);
 
         if (!in_array($fieldMapping['type'], self::$validTypes)) {

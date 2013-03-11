@@ -50,7 +50,7 @@ class QueryBuilder
     const STATE_CLEAN = 1;
 
     /**
-     * @var \Doctrine\DBAL\Connection DBAL Connection
+     * @var Doctrine\DBAL\Connection DBAL Connection
      */
     private $connection = null;
 
@@ -946,36 +946,29 @@ class QueryBuilder
         $query = 'SELECT ' . implode(', ', $this->sqlParts['select']) . ' FROM ';
 
         $fromClauses = array();
-        $joinsPending = true;
-        $joinAliases = array();
-        
+
         // Loop through all FROM clauses
         foreach ($this->sqlParts['from'] as $from) {
             $fromClause = $from['table'] . ' ' . $from['alias'];
 
-            if ($joinsPending && isset($this->sqlParts['join'][$from['alias']])) {
-                foreach ($this->sqlParts['join'] as $joins) {
-                    foreach ($joins as $join) {
-                        $fromClause .= ' ' . strtoupper($join['joinType'])
-                                     . ' JOIN ' . $join['joinTable'] . ' ' . $join['joinAlias']
-                                     . ' ON ' . ((string) $join['joinCondition']);
-                        $joinAliases[$join['joinAlias']] = true;
-                    }
+            if (isset($this->sqlParts['join'][$from['alias']])) {
+                foreach ($this->sqlParts['join'][$from['alias']] as $join) {
+                    $fromClause .= ' ' . strtoupper($join['joinType'])
+                                 . ' JOIN ' . $join['joinTable'] . ' ' . $join['joinAlias']
+                                 . ' ON ' . ((string) $join['joinCondition']);
                 }
-                $joinsPending = false;
             }
-            
+
             $fromClauses[$from['alias']] = $fromClause;
         }
 
-        // loop through all JOIN clauses for validation purpose
-        $knownAliases = array_merge($fromClauses,$joinAliases);
+        // loop through all JOIN clasues for validation purpose
         foreach ($this->sqlParts['join'] as $fromAlias => $joins) {
-            if ( ! isset($knownAliases[$fromAlias]) ) {
-                throw QueryException::unknownAlias($fromAlias, array_keys($knownAliases));
+            if ( ! isset($fromClauses[$fromAlias]) ) {
+                throw QueryException::unknownFromAlias($fromAlias, array_keys($fromClauses));
             }
         }
-        
+
         $query .= implode(', ', $fromClauses)
                 . ($this->sqlParts['where'] !== null ? ' WHERE ' . ((string) $this->sqlParts['where']) : '')
                 . ($this->sqlParts['groupBy'] ? ' GROUP BY ' . implode(', ', $this->sqlParts['groupBy']) : '')

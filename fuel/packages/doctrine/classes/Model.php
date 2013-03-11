@@ -104,7 +104,7 @@ abstract class Model
     public static function findAll(array $orderBy = array(), $limit = null, $offset = null)
     {
         $called_class = get_called_class();
-        return $called_class::findBy(array(), $orderBy, $limit, $offset);
+        return $called_class::findBy(array(), $orderBy, $limit, $offset)->getQuery()->getResult();
     }
     
     /**
@@ -124,7 +124,7 @@ abstract class Model
     {
         $called_class = get_called_class();
         $qb = $called_class::select('item');
-        $order = array_merge($called_class::$_order, $orderBy);
+        $order = (empty($orderBy) || is_null($orderBy)) ? $called_class::$_order :  $orderBy;
         
         foreach ($filters as $num => $filter)
         {
@@ -157,7 +157,7 @@ abstract class Model
         
         if ($limit !== null) $qb->setMaxResults($limit);
         if ($offset !== null) $qb->setFirstResult($offset);
-        return $qb->getQuery()->getResult();
+        return $qb;
     }
     
     /**
@@ -179,7 +179,7 @@ abstract class Model
     public static function findFirst(array $order = array())
     {
         $called_class = get_called_class();
-        $result = $called_class::findBy(array(), $order, 1);
+        $result = $called_class::findBy(array(), $order, 1)->getQuery()->getResult();
         return (count($result) === 1) ? $result[0] : null;
     }
     
@@ -197,7 +197,7 @@ abstract class Model
             return ($dir == 'DESC') ? 'ASC' : 'DESC';
         }, $order);
         
-        $result = $called_class::findBy(array(), $order, 1);
+        $result = $called_class::findBy(array(), $order, 1)->getQuery()->getResult();
         return (count($result) === 1) ? $result[0] : null;
     }
 	
@@ -220,7 +220,7 @@ abstract class Model
 	    foreach ($result->getIterator() as $violation) {
             
 	        $prop = $violation->getPropertyPath();
-            if (($fields !== null && !in_array($prop, $fields)) || ($exclude_fields !== null && in_array($prop, $exclude_fields)))
+            if ($prop == 'id' || ($fields !== null && !in_array($prop, $fields)) || ($exclude_fields !== null && in_array($prop, $exclude_fields)))
                 continue;
             
 	        $msg = $violation->getMessage();
@@ -243,7 +243,7 @@ abstract class Model
         foreach ($data as $field_name => $field_value) {
             
             if (property_exists($this, $field_name)) {
-                $this->set($field_name, $field_value, $overwrite);
+                $this->set($field_name, $field_value);
             }
             
         }
@@ -289,9 +289,16 @@ abstract class Model
             return isset($this->$field) ? $this->$field : $default_value;
         } else if (method_exists($this, $field)) {
             return $this->$field();
+        } else if (strpos($field, '.') !== false) {
+            $parts = explode(".", $field);
+            $field_name = array_shift($parts);
+            $assoc_field = array_shift($parts);
+            if (property_exists($this, $field_name) && isset($this->$field_name)) {
+                return $this->$field_name->$assoc_field;
+            }
+            return $default_value;
         } else {
             return $default_value;
-            // throw new \BadMethodCallException("no field with name '".$field."' exists on '".$this->_metadata()->getName()."'");
         }
     }
 
@@ -302,10 +309,9 @@ abstract class Model
      * @throws BadMethodCallException - When no property exists by that name.
      * @param string $field
      * @param mixed $value
-     * @param boolean $overwrite Whether to overwrite collections or not
      * @return void
      */
-    public function set($field, $value, $overwrite=true)
+    public function set($field, $value)
     {
         $metadata = $this->_metadata();
         
@@ -340,16 +346,13 @@ abstract class Model
             } else if ($metadata->isCollectionValuedAssociation($field)) {
                 
                 if (is_null($value) || empty($value)) {
-                    $value = array();
+                    $value = new ArrayCollection();
                 } else if (is_numeric($value) || $value instanceof \Doctrine\Fuel\Model) {
                     $value = array($value);
-                } else if ($value instanceof Collection) {
-                    $value = $value->toArray();
                 } else if (!is_array($value) && !($value instanceof Collection))  {
                     throw new \InvalidArgumentException("The value '$value' passed to '$field' of '".get_class($this)."' is not a collection or an array");
                 }
                 
-                $value = array_values($value);
                 $ids = array();
                 $collection = (!isset($this->$field)) ? new ArrayCollection() : $this->$field;
                 
@@ -381,18 +384,14 @@ abstract class Model
                     
                 }
                 
-                // If overwrite is true, remove collection items that aren't present in the given array
-                if ($overwrite === true) {
-                    
-                    foreach ($collection as $collection_item) {
-                        $cid = $collection_item->get('id');
-                        if (!is_null($cid) && !in_array($cid, $ids)) {
-                            $collection->removeElement($collection_item);
-                            $this->completeOwningSide($field, $target_class, $collection_item, true);
-                            $this->changed = true;
-                        }
+                foreach ($collection as $collection_item)
+                {
+                    $cid = $collection_item->get('id');
+                    if (!in_array($cid, $ids)) {
+                        $collection->removeElement($collection_item);
+                        $this->completeOwningSide($field, $target_class, $collection_item, true);
+                        $this->changed = true;
                     }
-                    
                 }
                 
                 $this->$field = $collection;
@@ -403,10 +402,10 @@ abstract class Model
             
         }
         
+        // Otherwise, this is a normal property. Try and set it...
         if (property_exists($this, $field)) {
             
-            // Otherwise, this is a normal property. Try and set it...
-            
+            //print("setting ".$field." to ".$value."\n");
             if ($this->$field !== $value) {
                 $this->$field = $value;
                 $this->changed = true;
@@ -416,19 +415,10 @@ abstract class Model
             
         } else if (($pos = strpos($field, '[')) !== false || ($pos = strpos($field, '.')) !== false) {
             
-            // The property may be written in array syntax or dot notation. Try and decipher it...
-            
             $field_name = substr($field, 0, $pos);
             $field_prop = substr(str_replace(array('[', ']'), array('.', ''), $field), $pos+1);
             
             if (property_exists($this, $field_name)) {
-                
-                $field_val = $this->$field_name;
-                
-                if ($field_val instanceof Model) {
-                    $field_val->set($field_prop, $value);
-                    return;
-                }
                 
                 if (!isset($this->$field_name) || !is_array($this->$field_name)) $this->$field_name = array();
                 \Arr::set($this->$field_name, $field_prop, $value);
@@ -515,14 +505,9 @@ abstract class Model
                 } else {
                     $target_object->set($mapped_by, null);
                 }
-            } else {
+            } else if (!is_null($target_object)) {
                 $setter = $target_metadata->isCollectionValuedAssociation($mapped_by) ? "add" : "set";
-                //print("using ".$setter." on ".$field."'s property ".$mapped_by."\n\n");
-                //print_r($target_object->toArray());
-                //print("\n\n");
                 $target_object->$setter($mapped_by, $this);
-                //print_r($target_object->$mapped_by);
-                
             }
         }
     }
@@ -638,11 +623,6 @@ abstract class Model
         } else {
             throw new \BadMethodCallException("No field with name '".$field."' exists on '".get_class($this)."'");
         }
-    }
-    
-    public function __isset($name)
-    {
-        return isset($this->$name);
     }
 	
 }

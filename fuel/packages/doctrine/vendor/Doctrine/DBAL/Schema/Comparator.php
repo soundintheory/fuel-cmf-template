@@ -24,7 +24,7 @@ namespace Doctrine\DBAL\Schema;
  *
  * @copyright Copyright (C) 2005-2009 eZ Systems AS. All rights reserved.
  * @license http://ez.no/licenses/new_bsd New BSD License
- *
+ * 
  * @link    www.doctrine-project.org
  * @since   2.0
  * @version $Revision$
@@ -46,7 +46,7 @@ class Comparator
     /**
      * Returns a SchemaDiff object containing the differences between the schemas $fromSchema and $toSchema.
      *
-     * The returned differences are returned in such a way that they contain the
+     * The returned diferences are returned in such a way that they contain the
      * operations to change the schema stored in $fromSchema to the schema that is
      * stored in $toSchema.
      *
@@ -58,7 +58,6 @@ class Comparator
     public function compare(Schema $fromSchema, Schema $toSchema)
     {
         $diff = new SchemaDiff();
-        $diff->fromSchema = $fromSchema;
 
         $foreignKeysToTable = array();
 
@@ -96,18 +95,6 @@ class Comparator
         foreach ($diff->removedTables as $tableName => $table) {
             if (isset($foreignKeysToTable[$tableName])) {
                 $diff->orphanedForeignKeys = array_merge($diff->orphanedForeignKeys, $foreignKeysToTable[$tableName]);
-
-                // deleting duplicated foreign keys present on both on the orphanedForeignKey
-                // and the removedForeignKeys from changedTables
-                foreach ($foreignKeysToTable[$tableName] as $foreignKey) {
-                    // strtolower the table name to make if compatible with getShortestName
-                    $localTableName = strtolower($foreignKey->getLocalTableName());
-                    if (isset($diff->changedTables[$localTableName])) {
-                        foreach ($diff->changedTables[$localTableName]->removedForeignKeys as $key => $removedForeignKey) {
-                            unset($diff->changedTables[$localTableName]->removedForeignKeys[$key]);
-                        }
-                    }
-                }
             }
         }
 
@@ -180,7 +167,6 @@ class Comparator
     {
         $changes = 0;
         $tableDifferences = new TableDiff($table1->getName());
-        $tableDifferences->fromTable = $table1;
 
         $table1Columns = $table1->getColumns();
         $table2Columns = $table2->getColumns();
@@ -205,7 +191,6 @@ class Comparator
                 $changedProperties = $this->diffColumn( $column, $table2->getColumn($columnName) );
                 if (count($changedProperties) ) {
                     $columnDiff = new ColumnDiff($column->getName(), $table2->getColumn($columnName), $changedProperties);
-                    $columnDiff->fromColumn = $column;
                     $tableDifferences->changedColumns[$column->getName()] = $columnDiff;
                     $changes++;
                 }
@@ -277,7 +262,7 @@ class Comparator
 
     /**
      * Try to find columns that only changed their name, rename operations maybe cheaper than add/drop
-     * however ambiguities between different possibilities should not lead to renaming at all.
+     * however ambiguouties between different possibilites should not lead to renaming at all.
      *
      * @param TableDiff $tableDifferences
      */
@@ -317,10 +302,6 @@ class Comparator
         }
 
         if (array_map('strtolower', $key1->getForeignColumns()) != array_map('strtolower', $key2->getForeignColumns())) {
-            return true;
-        }
-
-        if (strtolower($key1->getForeignTableName()) != strtolower($key2->getForeignTableName())) {
             return true;
         }
 

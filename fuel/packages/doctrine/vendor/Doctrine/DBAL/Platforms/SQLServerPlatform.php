@@ -256,7 +256,7 @@ class SQLServerPlatform extends AbstractPlatform
     {
         $constraint = parent::getCreateIndexSQL($index, $table);
 
-        if ($index->isUnique() && !$index->isPrimary()) {
+        if ($index->isUnique()) {
             $constraint = $this->_appendUniqueConstraintDefinition($constraint, $index);
         }
 
@@ -631,7 +631,13 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $columnDef)
     {
-        return (!empty($columnDef['autoincrement'])) ? ' IDENTITY' : '';
+        $autoinc = '';
+        if (!empty($columnDef['autoincrement'])) {
+            $autoinc = ' IDENTITY';
+        }
+        $unsigned = (isset($columnDef['unsigned']) && $columnDef['unsigned']) ? ' UNSIGNED' : '';
+
+        return $unsigned . $autoinc;
     }
 
     /**
@@ -845,7 +851,7 @@ class SQLServerPlatform extends AbstractPlatform
      */
     public function appendLockHint($fromClause, $lockMode)
     {
-        // @todo correct
+        // @todo coorect
         if ($lockMode == \Doctrine\DBAL\LockMode::PESSIMISTIC_READ) {
             return $fromClause . ' WITH (tablockx)';
         }
@@ -895,33 +901,5 @@ class SQLServerPlatform extends AbstractPlatform
     public function getBlobTypeDeclarationSQL(array $field)
     {
         return 'VARBINARY(MAX)';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getDefaultValueDeclarationSQL($field)
-    {
-        if ( ! isset($field['default'])) {
-            return empty($field['notnull']) ? ' NULL' : '';
-        }
-
-        if ( ! isset($field['type'])) {
-            return " DEFAULT '" . $field['default'] . "'";
-        }
-
-        if (in_array((string) $field['type'], array('Integer', 'BigInteger', 'SmallInteger'))) {
-            return " DEFAULT " . $field['default'];
-        }
-
-        if ((string) $field['type'] == 'DateTime' && $field['default'] == $this->getCurrentTimestampSQL()) {
-            return " DEFAULT " . $this->getCurrentTimestampSQL();
-        }
-
-        if ((string) $field['type'] == 'Boolean') {
-            return " DEFAULT '" . $this->convertBooleans($field['default']) . "'";
-        }
-
-        return " DEFAULT '" . $field['default'] . "'";
     }
 }

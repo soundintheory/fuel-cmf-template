@@ -96,7 +96,7 @@ interface Cache
      * Memory allowed to use for storage.
      *
      * @since   2.2
-     * @return  array Associative array with server's statistics if available, NULL otherwise.
+     * @var     array Associative array with server's statistics if available, NULL otherwise.
      */
     function getStats();
 }
