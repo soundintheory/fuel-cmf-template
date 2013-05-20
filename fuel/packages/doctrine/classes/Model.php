@@ -240,10 +240,14 @@ abstract class Model
      */
     public function populate($data, $overwrite=true)
     {
+        if (is_array($data)) {
+            $overwrite = \Arr::get($data, '__overwrite__', $overwrite);
+        }
+        
         foreach ($data as $field_name => $field_value) {
             
             if (property_exists($this, $field_name)) {
-                $this->set($field_name, $field_value);
+                $this->set($field_name, $field_value, $overwrite);
             }
             
         }
@@ -311,7 +315,7 @@ abstract class Model
      * @param mixed $value
      * @return void
      */
-    public function set($field, $value)
+    public function set($field, $value, $overwrite=true)
     {
         $metadata = $this->_metadata();
         
@@ -346,13 +350,16 @@ abstract class Model
             } else if ($metadata->isCollectionValuedAssociation($field)) {
                 
                 if (is_null($value) || empty($value)) {
-                    $value = new ArrayCollection();
+                    $value = array();
                 } else if (is_numeric($value) || $value instanceof \Doctrine\Fuel\Model) {
                     $value = array($value);
+                } else if ($value instanceof Collection) {
+                    $value = $value->toArray();
                 } else if (!is_array($value) && !($value instanceof Collection))  {
                     throw new \InvalidArgumentException("The value '$value' passed to '$field' of '".get_class($this)."' is not a collection or an array");
                 }
                 
+                $value = array_values($value);
                 $ids = array();
                 $collection = (!isset($this->$field)) ? new ArrayCollection() : $this->$field;
                 
@@ -360,6 +367,7 @@ abstract class Model
                 for ($i=0; $i < $len; $i++) {
                     
                     $item = $value[$i];
+                    $item_target_class = $target_class;
                     
                     if (is_numeric($item)) {
                         $item = $target_class::find($item);
@@ -367,7 +375,8 @@ abstract class Model
                         if (array_key_exists('id', $item) && !empty($item['id'])) {
                             $new_item = $target_class::find($item['id']);
                         } else {
-                            $new_item = new $target_class();
+                            if (isset($item['__type__']) && is_subclass_of($item['__type__'], $target_class)) $item_target_class = $item['__type__'];
+                            $new_item = new $item_target_class();
                         }
                         $new_item->populate($item);
                         $item = $new_item;
@@ -375,7 +384,7 @@ abstract class Model
                     
                     if (!$collection->contains($item)) {
                         $collection->add($item);
-                        $this->completeOwningSide($field, $target_class, $item);
+                        $this->completeOwningSide($field, $item_target_class, $item);
                     }
                     
                     \DoctrineFuel::manager()->persist($item);
@@ -384,14 +393,18 @@ abstract class Model
                     
                 }
                 
-                foreach ($collection as $collection_item)
-                {
-                    $cid = $collection_item->get('id');
-                    if (!in_array($cid, $ids)) {
-                        $collection->removeElement($collection_item);
-                        $this->completeOwningSide($field, $target_class, $collection_item, true);
-                        $this->changed = true;
+                // If overwrite is true, remove collection items that aren't present in the given array
+                if ($overwrite === true) {
+                    
+                    foreach ($collection as $collection_item) {
+                        $cid = $collection_item->get('id');
+                        if (!is_null($cid) && !in_array($cid, $ids)) {
+                            $collection->removeElement($collection_item);
+                            $this->completeOwningSide($field, $target_class, $collection_item, true);
+                            $this->changed = true;
+                        }
                     }
+                    
                 }
                 
                 $this->$field = $collection;
@@ -402,10 +415,10 @@ abstract class Model
             
         }
         
-        // Otherwise, this is a normal property. Try and set it...
         if (property_exists($this, $field)) {
             
-            //print("setting ".$field." to ".$value."\n");
+            // Otherwise, this is a normal property. Try and set it...
+            
             if ($this->$field !== $value) {
                 $this->$field = $value;
                 $this->changed = true;
@@ -415,10 +428,19 @@ abstract class Model
             
         } else if (($pos = strpos($field, '[')) !== false || ($pos = strpos($field, '.')) !== false) {
             
+            // The property may be written in array syntax or dot notation. Try and decipher it...
+            
             $field_name = substr($field, 0, $pos);
             $field_prop = substr(str_replace(array('[', ']'), array('.', ''), $field), $pos+1);
             
             if (property_exists($this, $field_name)) {
+                
+                $field_val = $this->$field_name;
+                
+                if ($field_val instanceof Model) {
+                    $field_val->set($field_prop, $value);
+                    return;
+                }
                 
                 if (!isset($this->$field_name) || !is_array($this->$field_name)) $this->$field_name = array();
                 \Arr::set($this->$field_name, $field_prop, $value);
@@ -604,7 +626,7 @@ abstract class Model
         } else if (property_exists($this, $method)) {
             return $this->$method;
         } else {
-            throw new \BadMethodCallException("No method with name '".$method."' exists on '".get_class($this)."'");
+            return null;
         }
     }
     
@@ -621,8 +643,13 @@ abstract class Model
         } else if (method_exists($this, $name)) {
             return $this->$name();
         } else {
-            throw new \BadMethodCallException("No field with name '".$field."' exists on '".get_class($this)."'");
+            return null;
         }
+    }
+    
+    public function __isset($name)
+    {
+        return isset($this->$name);
     }
 	
 }
